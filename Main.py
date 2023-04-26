@@ -11,22 +11,18 @@ class sprite():
         self.width = width
         self.height = height
         #creating two dimensional images
-        self.twoDImage = create2DImage(self.width, self.height, imagefile)
-
-    def is_collision(self, other):
-        return ((abs((self.x - other.x + 25)*2) < (self.width + other.width)) and 
-                (abs((self.y - other.y + 25)*2) < (self.height + other.height)))
+        self.twoDImage = create2DImage(self.width, self.height, imagefile)    
 
 class player(sprite):
     def __init__(self, x, y, width, height, imagefile):
         sprite.__init__(self, x, y, width, height, imagefile)
         self.dx = 0
-        self.row = 8
+        self.row = 9
 
     def up(self):
         (xChange, yChange) = twoDimensionToIsometric(0, -50)
         (self.x, self.y) = (self.x + xChange, self.y + yChange)
-        if self.row < 8:
+        if self.row < 9:
             self.row += 1
     
     def down(self):
@@ -46,6 +42,11 @@ class player(sprite):
         (xChange, yChange) = twoDimensionToIsometric(self.dx, 0)
         (self.x, self.y) = (self.x + xChange, self.y + yChange)
 
+    def is_collision(self, other):
+        centerX, centerY = (other.x + (1/2) * other.width, other.y + (1/2) * other.height)
+        return ((centerX > self.x + (1/4) * self.width) and (centerX < self.x + (3/4) * self.width) and
+                (centerY > self.y + (1/4) * self.height) and (centerY < self.y + (3/4) * self.height))
+
 class tree(sprite):
     def __init__(self, x, y, width, height, imagefile):
         sprite.__init__(self, x, y, width, height, imagefile)
@@ -54,6 +55,11 @@ class tree(sprite):
     def move(self):
         (xChange, yChange) = twoDimensionToIsometric(self.dx, 0)
         (self.x, self.y) = (self.x + xChange, self.y + yChange)
+
+    def is_collision(self, other):
+        centerX, centerY = (other.x + (1/2) * other.width, other.y + (1/2) * other.height)
+        return ((centerX > self.x + (1/4) * self.width) and (centerX < self.x + (3/4) * self.width) and
+                (centerY > self.y + (1/4) * self.height) and (centerY < self.y + (3/4) * self.height))
 
 class car(sprite):
     def __init__(self, x, y, width, height, imagefile, dx):
@@ -71,12 +77,15 @@ class car(sprite):
         (self.x, self.y) = (self.x + xChange, self.y + yChange)
     #car returns on the other side when it leaves the screen
         if self.dx > 0 and self.y >= 600:
-            self.x = findBorderX(self.x, self.y, self.dx)
-            self.y = 0
+            self.x, self.y = findBorderX(self.x, self.y, self.dx)
         if self.dx < 0 and self.y <= 0:
-            self.x = findBorderX(self.x, self.y, self.dx)
-            self.y = 600
+            self.x, self.y = findBorderX(self.x, self.y, self.dx)
+    def is_collision(self, other):
+        centerX, centerY = (other.x + (1/2) * other.width, other.y + (1/2) * other.height)
+        return ((centerX > self.x + (1/4) * self.width) and (centerX < self.x + (3/4) * self.width) and
+                (centerY > self.y + (1/4) * self.height) and (centerY < self.y + (3/4) * self.height))
 
+    
 class log(sprite):
     def __init__(self, x, y, width, height, imagefile, dx):
         sprite.__init__(self, x, y, width, height, imagefile)
@@ -89,12 +98,14 @@ class log(sprite):
         (self.x, self.y) = (self.x + xChange, self.y + yChange)
     #car returns on the other side when it leaves the screen
         if self.dx > 0 and self.y >= 600:
-            self.x = findBorderX(self.x, self.y, self.dx)
-            self.y = 0
+            self.x, self.y = findBorderX(self.x, self.y, self.dx)
         if self.dx < 0 and self.y <= 0:
-            self.x = findBorderX(self.x, self.y, self.dx)
-            self.y = 600
-
+            self.x, self.y = findBorderX(self.x, self.y, self.dx)
+    def is_collision(self, other):
+        centerX, centerY = (other.x + (1/2) * other.width, other.y + (1/2) * other.height)
+        return ((centerX > self.x + (1/4) * self.width) and (centerX < self.x + (3/4) * self.width) and
+                (centerY > self.y + (1/4) * self.height) and (centerY < self.y + (3/4) * self.height))
+    
 class racecar(sprite):
     def __init__(self, x, y, width, height, imagefile, dx):
         sprite.__init__(self, x, y, width, height, imagefile)
@@ -127,12 +138,12 @@ def findBorderX(currX, currY, dx):
         (xChange, yChange) = twoDimensionToIsometric(-dx, 0)
         while currY >= 0:
             (currX, currY) = (currX + xChange, currY + yChange)
-        return currX
+        return currX, currY
     else:
         (xChange, yChange) = twoDimensionToIsometric(-dx, 0)
         while currY <= 600:
             (currX, currY) = (currX + xChange, currY + yChange)
-        return currX
+        return currX, currY
 
 #creating two dimensional images
 def create2DImage(width, height, imagefile):
@@ -157,20 +168,22 @@ def onAppStart(app):
     app.gameMode = 'single'
     app.gamePaused = False
     app.tileSize = app.width // 20
-    app.board = []
-    app.obstacleBoard = []
-    app.sprites = []
     app.terrainTypes = ['grass', 'river', 'road']
     app.logSpeeds = ['fast', 'medium', 'slow']
     app.carSpeeds = ['fast', 'medium', 'slow']
-    app.stepsPerSecond = 180
+    app.stepsPerSecond = 1
     restartSinglePlayer(app)
 
 def restartSinglePlayer(app):
     app.gameOver = False
+    app.board = []
+    app.obstacleBoard = []
+    app.sprites = []
     genTerrainList(app)
     genObstaclesProperties(app)
     genObstacles(app)
+    app.onLog = False
+    app.breakFlag = False
 
     # set player1 start position
     app.player1 = player(325, 412,
@@ -179,7 +192,7 @@ def restartSinglePlayer(app):
     app.sprites.append([app.player1])
     
 def genTerrainList(app):
-    #create a list with order of terrain (first 8 rows are always grass)
+    #create a list with order of terrain (first 10 rows are always grass)
     app.terrainList = ['grass', 'grass', 'grass', 'grass', 'grass', 'grass',
                        'grass', 'grass', 'grass', 'grass']
     #follow rows are produced randomly depending on percentage
@@ -278,7 +291,7 @@ def genObstacles(app):
                 xTerrain -= xChange
                 yTerrain -= yChange
 
-        elif app.terrainList[obstacleIdx] == 'road':
+        if app.terrainList[obstacleIdx] == 'road':
             #generating cars
             carSpeed, carDirection, carColor = app.board[obstacleIdx]
             for col in range(app.cols):
@@ -335,13 +348,13 @@ def drawObstacles(app):
                 drawImage(obstacle.twoDImage, obstacle.x, obstacle.y) 
             elif isinstance(obstacle, log):
                 drawImage(obstacle.isoImage, obstacle.x, obstacle.y + (1/4) * app.tileSize)
-            elif isinstance(obstacle, car):
+            if isinstance(obstacle, car):
                 drawImage(obstacle.isoImage, obstacle.x, obstacle.y + (1/4) * app.tileSize)       
 
 def onKeyPress(app, key):
     if key == 'up' or key == 'space':
         app.player1.twoDImage = create2DImage(app.player1.width, app.player1.height, 'Player1Forward.png')
-        if app.player1.row < 8:
+        if app.player1.row < 9:
             app.player1.up()
         else:
             app.player1.up()
@@ -349,9 +362,11 @@ def onKeyPress(app, key):
     elif key == 'down':
         app.player1.twoDImage = create2DImage(app.player1.width, app.player1.height, 'Player1Back.png')
         app.player1.down()
+
     elif key == 'left':
         app.player1.twoDImage = create2DImage(app.player1.width, app.player1.height, 'Player1Left.png')
         app.player1.left()
+
     elif key == 'right':
         app.player1.twoDImage = create2DImage(app.player1.width, app.player1.height, 'Player1Right.png')
         app.player1.right()
@@ -460,26 +475,42 @@ def shiftBoard(app):
     app.sprites.append(rowList)
     app.sprites.pop(0)
 
-def onStep(app):
+def onStep(app):    
     #move all obstacles accordingly
     for row in app.sprites:
         for sprite in row:
-            sprite.move()
+            sprite.move()    
+    app.steppedOnTree = False
     #player.dx is set to 0 when it is no longer on the log
     app.player1.dx = 0
     #check for any collisions with player
     for row in app.sprites:
         for sprite in row:
-            if app.player1.is_collision(sprite):
-                if isinstance(sprite, car) and app.terrainList[app.player1.row] == 'road':
+            if isinstance(sprite, car) and app.terrainList[app.player1.row] == 'road' and sprite.is_collision(app.player1):
+                restartSinglePlayer(app)
+                app.breakFlag = True
+                break
+            elif isinstance(sprite, tree) and sprite.is_collision(app.player1) and app.terrainList[app.player1.row]:
+                if not sprite.is_collision(app.player1):
                     restartSinglePlayer(app)
-                    break
-                elif isinstance(sprite, log) and app.terrainList[app.player1.row] == 'river':
+                app.breakFlag = True
+                break
+            if isinstance(sprite, log) and app.terrainList[app.player1.row] == 'river':
+                if sprite.is_collision(app.player1):
+                    app.breakFlag = True
+                    app.onLog = True
+
                     app.player1.dx = sprite.dx
                     break
-            if app.terrainList[app.player1.row] == 'river':
-                restartSinglePlayer(app)
-                    
+            
+         
+        if app.breakFlag == True:
+            app.breakFlag = False
+            break
+        # elif app.terrainList[app.player1.row] == 'river':
+        #     print('grrr')
+        #     app.breakFlag = True
+        #     break
 
     #gameover when player leaves the screen
     if app.player1.y >= 600 or app.player1.y <= 0:
